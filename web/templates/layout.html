@@ -17,6 +17,9 @@
 <form name="display_name" action="{{ route }}" method="get">
 Search: <input autocomplete="off" id="autocomplete" type="text" name="q" value="{{query}}" class="autocomplete-nominatim" autofocus="autofocus" /><br/>
 <input type="hidden" name="format" value="html" />
+{% if result and 'times' in result %}
+<input type="hidden" name="debug" value="1" />
+{% endif %}
 <input class="btn" type="submit" value="Search" />
 </form>
 {% endblock %}

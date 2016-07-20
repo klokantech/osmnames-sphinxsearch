@@ -28,6 +28,41 @@ RUN curl -s \
 && mkdir -p /var/log/sphinx \
 && mkdir -p /var/log/supervisord
 
+VOLUME ["/data/"]
+
+RUN apt-get clean \
+&& apt-get -qq update \
+&& apt-get install -qq -y --no-install-recommends \
+    libsnappy-dev \
+    autoconf \
+    automake \
+    libtool \
+    pkg-config \
+    build-essential \
+    python-dev \
+    unzip \
+&& curl -L -s \
+    https://github.com/openvenues/libpostal/archive/master.zip \
+    -o /tmp/libpostal.zip \
+&& unzip -q /tmp/libpostal.zip -d /usr/local/src \
+&& cd /usr/local/src/libpostal-* \
+&& ./bootstrap.sh \
+&& ./configure --datadir=/data/ \
+&& make \
+&& make install \
+&& ldconfig \
+&& pip install postal \
+&& apt-get purge -y \
+    autoconf \
+    automake \
+    libtool \
+    pkg-config \
+    build-essential \
+    python-dev \
+    unzip \
+&& apt-get autoremove -y
+
+
 COPY conf/sphinx/*.conf /etc/sphinxsearch/
 COPY conf/nginx/nginx.conf /etc/nginx/sites-available/default
 COPY supervisor/*.conf /etc/supervisor/conf.d/

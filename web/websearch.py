@@ -15,6 +15,7 @@ from pprint import pprint, pformat
 from json import dumps
 from os import getenv
 from time import time
+from postal.parser import parse_address
 import requests
 import sys
 import MySQLdb
@@ -358,6 +359,35 @@ def displayName():
 
 # ---------------------------------------------------------
 """
+Modify original query - remove house number
+"""
+def modify_query_orig(orig_query):
+    return orig_query, orig_query
+
+"""
+Modify original query - remove house number
+"""
+def modify_query_remhouse(orig_query):
+    # Parse address and remove house_number
+    adr = parse_address(orig_query)
+    for element in adr:
+        if element[1] == 'house_number':
+            query = orig_query.replace(element[0], "")
+            return query, query
+    return None, orig_query
+
+"""
+Modify original query - remove house number
+"""
+def modify_query_splitor(orig_query):
+    if orig_query.startswith('@'):
+        return None, orig_query
+    query = ' | '.join(re.compile("\s*,\s*|\s+").split(orig_query))
+    return query, orig_query
+
+
+# ---------------------------------------------------------
+"""
 Global searching
 """
 @app.route('/')
@@ -413,28 +443,36 @@ def search():
 
     data['url'] = request.url
 
-    orig_query = data['query']
+    proc_query = orig_query = data['query']
     index = None
 
     if request.args.get('debug'):
         times['prepare'] = time() - times['start']
 
+    rc = False
+    result = {}
     for ind in ['ind_name', 'ind_name_soundex',]:
-        query = orig_query
         index = ind
-        rc, result = process_query_mysql(index, query, query_filter, start, count)
-        if rc and len(result['results']) > 0:
-            break
-        if not query.startswith('@'):
-            query = ' | '.join(re.compile("\s*,\s*|\s+").split(query))
+        # Cycle through few modifications of query
+        for modify in [modify_query_orig, modify_query_remhouse, modify_query_splitor]:
+            query, proc_query = modify(proc_query)
+            # No modification
+            if query is None:
+                continue
+            # Process modified query
             rc, result = process_query_mysql(index, query, query_filter, start, count)
+            if rc and len(result['results']) > 0:
+                result['modify'] = modify.__name__
+                result['query_succeed'] = query.decode('utf-8')
+                result['index_succeed'] = index.decode('utf-8')
+                break
+        if rc and 'results' in result and len(result['results']) > 0:
+            break
 
     if rc:
         code = 200
 
     data['query'] = orig_query.decode('utf-8')
-    result['query_succeed'] = query.decode('utf-8')
-    result['index_succeed'] = index.decode('utf-8')
     if request.args.get('debug'):
         times['process'] = time() - times['start']
         result['times'] = times

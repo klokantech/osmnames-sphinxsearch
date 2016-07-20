@@ -4,6 +4,10 @@
 <hr>
 {% if rc %}
 <p>Found <b>{{ result['totalResults'] }}</b> results for <i>{{query}}</i> in <i>{{index}}</i>:</p>
+<p>Used index {{result['index_succeed']}} for query <i>{{result['query_succeed']}}</i> with modify {{result['modify']}}</p>
+{% if 'times' in result %}
+<p>Times: prepare {{result['times']['prepare']}}, total {{result['times']['process']}}</p>
+{% endif %}
 <p>Showing <b>{{ result['results'] | length }}</b> results</p>
 <table class="entries" width="100%" border="1" style="border-collapse: collapse;">
   <tr>
